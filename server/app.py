@@ -127,7 +127,8 @@ def submit_aux(task, song_id, args, done_msg):
         try:
             await fut
             await broadcast({"type": "song", "songId": song_id})
-            await broadcast({"type": "toast", "text": done_msg})
+            if done_msg:
+                await broadcast({"type": "toast", "text": done_msg})
         except Exception as e:  # noqa: BLE001
             await broadcast({"type": "toast", "text": f"That didn't work: {e}", "error": True})
     asyncio.create_task(wait())
@@ -309,6 +310,25 @@ async def song(song_id: str, version: str | None = None):
 @app.get("/api/songs/{song_id}/peaks")
 async def peaks(song_id: str, version: str | None = None):
     return store.read_part(song_id, "peaks", {}, version)
+
+
+@app.get("/api/songs/{song_id}/spectrogram")
+async def spectrogram(song_id: str, version: str | None = None):
+    data = store.read_part(song_id, "spectrogram", None, version)
+    if not data:
+        raise HTTPException(404, "No spectrogram yet")
+    return data
+
+
+@app.post("/api/songs/{song_id}/spectrogram")
+async def draw_spectrogram(song_id: str):
+    s = store.read_song(song_id)
+    if not s or s.get("status") != "ready":
+        raise HTTPException(409, "Prepare this song first")
+    if song_id not in jobs.status:
+        submit_aux("spectrogram", song_id, {}, None)
+        await push_state()
+    return {"ok": True}
 
 
 @app.put("/api/songs/{song_id}/mix")

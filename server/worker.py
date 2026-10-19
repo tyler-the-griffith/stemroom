@@ -121,6 +121,7 @@ def task_process(song_id, args):
         prog.frac((i + 1) / len(wavs))
     store.write_part(song_id, "peaks", peaks)
     store.update_song(song_id, stems=stems, quality=quality)
+    write_spectrogram(song_id, d / "stems", stems)
     if harmony_report:
         store.write_part(song_id, "harmonies", harmony_report)
         store.update_song(song_id, harmonyAnalysis=harmony_report)
@@ -241,6 +242,7 @@ def task_refine(song_id, args):
     stems[pos + 1:pos + 1] = new
     store.write_part(song_id, "peaks", peaks)
     store.update_song(song_id, stems=stems)
+    add_to_spectrogram(song_id, d / "stems", list(out))
     sep.cleanup(work)
 
 
@@ -289,7 +291,39 @@ def task_harmonies(song_id, args):
     store.write_part(song_id, "peaks", peaks)
     store.write_part(song_id, "harmonies", report)
     store.update_song(song_id, stems=stems, harmonyAnalysis=report)
+    add_to_spectrogram(song_id, d / "stems", list(harmonies.CHILDREN))
     sep.cleanup(work)
+
+
+def write_spectrogram(song_id, stems_dir, stems):
+    """The Studio's separation picture. A nicety: never fail a job over it."""
+    from .pipeline import spectrogram
+    try:
+        store.write_part(song_id, "spectrogram", spectrogram.for_song(stems_dir, stems))
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
+
+
+def add_to_spectrogram(song_id, stems_dir, stem_ids):
+    from .pipeline import spectrogram
+    existing = store.read_part(song_id, "spectrogram")
+    if not existing:
+        return write_spectrogram(song_id, stems_dir, store.read_song(song_id)["stems"])
+    try:
+        store.write_part(song_id, "spectrogram", spectrogram.build(stems_dir, stem_ids, existing))
+    except Exception:  # noqa: BLE001
+        traceback.print_exc()
+
+
+def task_spectrogram(song_id, args):
+    """Backfill for songs prepared before the Studio had a spectrogram."""
+    from .pipeline import spectrogram
+    prog = Progress([("draw", 1)])
+    prog.step("draw", "Drawing the spectrogram")
+    song = store.read_song(song_id)
+    if not song or song.get("status") != "ready":
+        raise ValueError("Prepare this song first")
+    store.write_part(song_id, "spectrogram", spectrogram.for_song(store.asset_dir(song_id) / "stems", song["stems"]))
 
 
 def task_export(song_id, args):
@@ -302,7 +336,8 @@ def task_export(song_id, args):
     emit(event="file", path=str(out))
 
 
-TASKS = {"process": task_process, "lyrics": task_lyrics, "refine": task_refine, "export": task_export}
+TASKS = {"process": task_process, "lyrics": task_lyrics, "refine": task_refine, "export": task_export,
+         "spectrogram": task_spectrogram}
 
 
 def main():
