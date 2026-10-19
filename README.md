@@ -8,14 +8,16 @@ Party karaoke built on stem separation. Paste a YouTube link (or search, or drop
 
 The website in `docs/` is Stemroom's public entry point, hosted on the portfolio
 and mirrored on GitHub Pages. **Open Stemroom** launches the full app through a
-protected HTTPS tunnel to the host computer. The computer and tunnel must remain
+public HTTPS tunnel to the host computer. Anyone can join without signing in
+and has full control of the shared library and player. The computer and tunnel must remain
 running. A tunnel restart changes its URL, which must be updated in both entry
 pages. GitHub Pages cannot run
 Python, FFmpeg, model inference, or the shared library database.
 
-The backend can run on a computer with a protected HTTPS tunnel. The computer
-must stay powered on and connected. The tunnel must protect the app before it is
-published: the app itself is a shared room and has no account or role system.
+The app is a shared room and has no account or role system. Its current public
+mode is intentional: every visitor can upload, download, replace, and delete
+songs, change mixes, and control playback. The tunnel helper also supports
+email-restricted rooms when private access is wanted.
 See [online hosting](HOSTING.md) for operation and access details.
 
 Only source, tests, documentation, and the public website belong in this
@@ -41,7 +43,7 @@ using `192.168.1.x`:
 sudo ufw allow from 192.168.1.0/24 to any port 8765 proto tcp
 ```
 
-A protected outbound tunnel does not need an inbound router port-forward.
+An outbound tunnel does not need an inbound router port-forward.
 
 Environment knobs:
 

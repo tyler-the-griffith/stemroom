@@ -7,9 +7,9 @@
 - Repository: https://github.com/tyler-the-griffith/stemroom
 
 These are static entry pages. The full application runs on Tyler's computer
-behind a protected Cloudflare Quick Tunnel. `docs/room.json` points to that
-room. Opening it requires an email login code for an address in the tunnel's
-allowlist. Anonymous page, API, and audio requests are redirected to sign-in.
+behind a public Cloudflare Quick Tunnel. `docs/room.json` points to that
+room. Anyone can open it without signing in and has full control of the shared
+library and player. Public access was explicitly selected by the owner.
 
 The portfolio's top navigation links to `/stemroom/`. The entry page and the
 application both have a link back to `https://tylergriffith.us/` in their top bars.
@@ -19,8 +19,9 @@ The app's numbered Queue / Stage / Studio navigation stays visible on mobile.
 
 The computer, Stemroom server, and tunnel process must stay running. No cloud
 server has been purchased. Music and the database remain on the computer;
-Cloudflare relays HTTPS traffic to approved browsers. This is a shared room:
-anyone admitted can control playback, import songs, and download stems.
+Cloudflare relays HTTPS traffic to visitors. This is one shared room: everyone
+can control playback, import, replace or delete songs, edit mixes, and download
+stems. There are no separate visitor accounts or private libraries.
 
 Quick Tunnels are temporary: their hostname changes when restarted, there is no
 uptime guarantee, and they support up to 200 concurrent in-flight requests. They
@@ -31,24 +32,23 @@ and configured domain can provide a stable app hostname later.
 To restart after a reboot, first run `./run.sh`. In another terminal:
 
 ```bash
-./scripts/start-online.sh owner@example.com
+./scripts/start-online.sh --public
 ```
 
-Replace the example with the allowed email address. The verified Cloudflare
-binary can live in ignored `data/tools/cloudflared`, be on PATH, or be specified
-with `CLOUDFLARED`. The helper requires explicit individual email addresses and
-never falls back to an unprotected tunnel. The existing running tunnel is
-restricted to the owner's email. Add guests only deliberately by restarting
-with their addresses as additional arguments.
+The verified Cloudflare binary can live in ignored `data/tools/cloudflared`, be
+on PATH, or be specified with `CLOUDFLARED`. The helper requires an explicit
+`--public` choice or individual allowed email addresses. To return to private
+access, stop the public tunnel and use
+`./scripts/start-online.sh owner@example.com` with the desired addresses.
 
-After the protected tunnel prints its HTTPS URL, verify that an anonymous visit
-requires login, then update the entry pages:
+After the public tunnel prints its HTTPS URL, verify that an anonymous visit
+opens the app, then update the entry pages:
 
 ```bash
-python scripts/set-room.py https://your-new-hostname.trycloudflare.com
+python scripts/set-room.py --public https://your-new-hostname.trycloudflare.com
 python scripts/check-site.py
 git add docs/room.json
-git commit -m "Update protected room address"
+git commit -m "Update public room address"
 git push
 ```
 
