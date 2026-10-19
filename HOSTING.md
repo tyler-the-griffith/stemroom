@@ -6,14 +6,58 @@
 - GitHub Pages mirror: https://tyler-the-griffith.github.io/stemroom/
 - Repository: https://github.com/tyler-the-griffith/stemroom
 
-These are static entry pages. **The online backend is not deployed yet.**
-`docs/room.json` has no room URL until a protected backend is provisioned and
-verified. The site explicitly displays that state instead of claiming the room
-is online. The full application continues to work on the local host.
+These are static entry pages. The full application runs on Tyler's computer
+behind a protected Cloudflare Quick Tunnel. `docs/room.json` points to that
+room. Opening it requires an email login code for an address in the tunnel's
+allowlist. Anonymous page, API, and audio requests are redirected to sign-in.
 
 The portfolio's top navigation links to `/stemroom/`. The entry page and the
 application both have a link back to `https://tylergriffith.us/` in their top bars.
 The app's numbered Queue / Stage / Studio navigation stays visible on mobile.
+
+## Current computer-hosted setup
+
+The computer, Stemroom server, and tunnel process must stay running. No cloud
+server has been purchased. Music and the database remain on the computer;
+Cloudflare relays HTTPS traffic to approved browsers. This is a shared room:
+anyone admitted can control playback, import songs, and download stems.
+
+Quick Tunnels are temporary: their hostname changes when restarted, there is no
+uptime guarantee, and they support up to 200 concurrent in-flight requests. They
+are suitable for this interim setup, not a promise of permanent hosting. The
+website links must be updated after a tunnel restart. A named Cloudflare Tunnel
+and configured domain can provide a stable app hostname later.
+
+To restart after a reboot, first run `./run.sh`. In another terminal:
+
+```bash
+./scripts/start-online.sh owner@example.com
+```
+
+Replace the example with the allowed email address. The verified Cloudflare
+binary can live in ignored `data/tools/cloudflared`, be on PATH, or be specified
+with `CLOUDFLARED`. The helper requires explicit individual email addresses and
+never falls back to an unprotected tunnel. The existing running tunnel is
+restricted to the owner's email. Add guests only deliberately by restarting
+with their addresses as additional arguments.
+
+After the protected tunnel prints its HTTPS URL, verify that an anonymous visit
+requires login, then update the entry pages:
+
+```bash
+python scripts/set-room.py https://your-new-hostname.trycloudflare.com
+python scripts/check-site.py
+git add docs/room.json
+git commit -m "Update protected room address"
+git push
+```
+
+Also copy the updated `docs/` into the portfolio repository's `stemroom/`
+directory and deploy that repository. Updating only Pages leaves the portfolio
+entry pointing at the previous tunnel. The tunnel is currently started as a
+detached process; it is not configured to restart automatically after a reboot.
+
+Cloudflare documentation: https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/
 
 ## WestHost
 
@@ -33,7 +77,7 @@ References:
 - https://www.westhost.com/web-hosting/
 - https://docs.20i.com/web-hosting/daemons-on-shared-hosting
 
-## VPS deployment outline
+## Optional future VPS deployment
 
 The repository includes example configuration in `deploy/`. These files are
 templates, not proof that a cloud deployment is running.

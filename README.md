@@ -7,9 +7,10 @@ Party karaoke built on stem separation. Paste a YouTube link (or search, or drop
 ## Website and online app
 
 The website in `docs/` is Stemroom's public entry point, hosted on the portfolio
-and mirrored on GitHub Pages. Once its backend is configured, **Open Stemroom**
-launches the full app. Online backend deployment is currently pending a suitable
-server; the local app is working. GitHub Pages cannot run
+and mirrored on GitHub Pages. **Open Stemroom** launches the full app through a
+protected HTTPS tunnel to the host computer. The computer and tunnel must remain
+running. A tunnel restart changes its URL, which must be updated in both entry
+pages. GitHub Pages cannot run
 Python, FFmpeg, model inference, or the shared library database.
 
 The backend can run on a computer with a protected HTTPS tunnel. The computer
