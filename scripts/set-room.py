@@ -1,6 +1,8 @@
 """Record a verified public room URL; contains no access token or credentials."""
 import argparse
 import json
+import subprocess
+import sys
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -18,4 +20,5 @@ access = ('Anyone can join without signing in and control the shared library and
 data = {'url': args.url.rstrip('/'),
         'note': f'Hosted on Tyler’s computer while it is online. {access}'}
 (root / 'docs/room.json').write_text(json.dumps(data, indent=2) + '\n')
+subprocess.run([sys.executable, str(root / 'scripts/build-site.py')], check=True)
 print('Room URL updated. Publish docs/ to update both website entry points.')

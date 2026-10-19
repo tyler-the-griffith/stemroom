@@ -7,11 +7,12 @@ Party karaoke built on stem separation. Paste a YouTube link (or search, or drop
 ## Website and online app
 
 The website in `docs/` is Stemroom's public entry point, hosted on the portfolio
-and mirrored on GitHub Pages. **Open Stemroom** launches the full app through a
+and mirrored on GitHub Pages. Both links open the Queue directly through a
 public HTTPS tunnel to the host computer. Anyone can join without signing in
 and has full control of the shared library and player. The computer and tunnel must remain
 running. A tunnel restart changes its URL, which must be updated in both entry
-pages. GitHub Pages cannot run
+pages. `scripts/set-room.py` rebuilds the redirect when the address changes.
+GitHub Pages cannot run
 Python, FFmpeg, model inference, or the shared library database.
 
 The app is a shared room and has no account or role system. Its current public

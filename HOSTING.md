@@ -6,13 +6,13 @@
 - GitHub Pages mirror: https://tyler-the-griffith.github.io/stemroom/
 - Repository: https://github.com/tyler-the-griffith/stemroom
 
-These are static entry pages. The full application runs on Tyler's computer
+Both website links redirect directly to the Queue. The full application runs on Tyler's computer
 behind a public Cloudflare Quick Tunnel. `docs/room.json` points to that
 room. Anyone can open it without signing in and has full control of the shared
 library and player. Public access was explicitly selected by the owner.
 
-The portfolio's top navigation links to `/stemroom/`. The entry page and the
-application both have a link back to `https://tylergriffith.us/` in their top bars.
+The portfolio's top navigation links to `/stemroom/`, which opens the Queue.
+The application has a link back to `https://tylergriffith.us/` in its top bar.
 The app's numbered Queue / Stage / Studio navigation stays visible on mobile.
 
 ## Current computer-hosted setup
@@ -47,11 +47,12 @@ opens the app, then update the entry pages:
 ```bash
 python scripts/set-room.py --public https://your-new-hostname.trycloudflare.com
 python scripts/check-site.py
-git add docs/room.json
+git add docs/
 git commit -m "Update public room address"
 git push
 ```
 
+The helper rebuilds `docs/index.html` with the new Queue address.
 Also copy the updated `docs/` into the portfolio repository's `stemroom/`
 directory and deploy that repository. Updating only Pages leaves the portfolio
 entry pointing at the previous tunnel. The tunnel is currently started as a
