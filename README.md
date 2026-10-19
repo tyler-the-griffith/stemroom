@@ -53,6 +53,8 @@ Environment knobs:
 | `STEMROOM_PORT` | `8765` | |
 | `STEMROOM_DEVICE` | `auto` | `cpu` keeps the GPU completely free (see below) |
 | `STEMROOM_DATA` | `./data` | songs, models, exports |
+| `STEMROOM_PUBLIC_URL` | unset | canonical website URL used by QR codes |
+| `STEMROOM_FRONTEND_ORIGINS` | unset | comma-separated frontend origins allowed to call a separately hosted backend |
 
 ### GPU use
 
@@ -141,8 +143,8 @@ The browser libraries (Preact, htm, qrcode-generator, Signalsmith Stretch) are v
 
 ## Library, collections and mixes
 
-Use **Theme** in the top bar to choose Stemroom Classic, Olive Garden Feast,
-Autumn Harvest, or Fiery Ocean. The choice applies to every view, is saved on that
+Use **Theme** in the top bar to choose Olive Garden Feast, Autumn Harvest, or
+Fiery Ocean. The choice applies to every view, is saved on that
 browser, and syncs between its open tabs. Album covers keep their original colors.
 
 The numbered Queue / Stage / Studio navigation stays visible across views and in
@@ -196,6 +198,10 @@ They use temporary data and do not touch the live library or run separation mode
 
 The Python API is in `server/`, the Preact app in `web/`, and the GitHub Pages
 entry point in `docs/`. No frontend package installation is needed.
+
+The browser app can be hosted separately from the Python server. See
+[static frontend and Cloudflare backend](deploy/cloudflare/README.md) for the
+build command, allowed frontend origins, and permanent tunnel setup.
 
 ```bash
 python -m pip install -r requirements-test.txt

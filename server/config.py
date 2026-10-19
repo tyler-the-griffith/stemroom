@@ -2,6 +2,7 @@
 import os
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = Path(os.environ.get("STEMROOM_DATA", ROOT / "data"))
@@ -11,6 +12,14 @@ EXPORTS = DATA / "exports"
 WEB = ROOT / "web"
 
 PORT = int(os.environ.get("STEMROOM_PORT", "8765"))
+PUBLIC_URL = os.environ.get('STEMROOM_PUBLIC_URL', '').rstrip('/')
+# Explicit frontend origins; the default local installation needs no CORS.
+FRONTEND_ORIGINS = [v.strip() for v in os.environ.get('STEMROOM_FRONTEND_ORIGINS', '').split(',') if v.strip()]
+if PUBLIC_URL:
+    public = urlsplit(PUBLIC_URL)
+    if (public.scheme != 'https' or not public.hostname or public.username or public.password
+            or public.query or public.fragment or public.path not in ('', '/stemroom')):
+        raise ValueError('STEMROOM_PUBLIC_URL must be an HTTPS origin, optionally ending in /stemroom')
 
 # "auto" uses CUDA when torch can see it, "cpu" forces CPU (e.g. while the VM owns the GPU).
 DEVICE = os.environ.get("STEMROOM_DEVICE", "auto")

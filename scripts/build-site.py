@@ -11,8 +11,8 @@ room = json.loads((docs / 'room.json').read_text())
 origin = room.get('url', '')
 url = urlsplit(origin)
 if (url.scheme != 'https' or not url.hostname or url.username or url.password
-        or url.query or url.fragment or url.path not in ('', '/')):
-    raise ValueError('Configure a plain HTTPS room origin with scripts/set-room.py first')
+        or url.query or url.fragment or url.path not in ('', '/', '/stemroom', '/stemroom/')):
+    raise ValueError('Configure an HTTPS app URL with scripts/set-room.py first')
 queue = origin.rstrip('/') + '/#/'
 target = escape(queue, quote=True)
 script_target = json.dumps(queue).replace('<', r'\u003c')

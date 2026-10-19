@@ -1,5 +1,5 @@
 import { html, render, useEffect, useState } from './lib.js';
-import { Toasts, TopBar } from './ui.js';
+import { Toasts, TopBar, ConnectionNotice } from './ui.js';
 import { QueueView } from './views/queue.js';
 import { StageView } from './views/stage.js';
 import { StudioView } from './views/studio.js';
@@ -28,7 +28,7 @@ function App() {
   else view = html`<${QueueView} />`;
   document.title = { stage: 'Stage · Stemroom', studio: 'Studio · Stemroom', join: 'Join the party · Stemroom' }[name] || 'Stemroom';
   if (name === 'studio' && arg) { try { localStorage.setItem('stemroom.studio', location.hash); } catch {} }
-  return html`<${TopBar} active=${name || 'queue'} studioSong=${arg}/><main>${view}</main><div style=${{display:name==='stage'?'contents':'none'}}><${StageView} active=${name==='stage'}/></div><${ImportDialog}/><${Toasts} />`;
+  return html`<${TopBar} active=${name || 'queue'} studioSong=${arg}/><${ConnectionNotice}/><main>${view}</main><div style=${{display:name==='stage'?'contents':'none'}}><${StageView} active=${name==='stage'}/></div><${ImportDialog}/><${Toasts} />`;
 }
 
 render(html`<${App} />`, document.getElementById('app'));

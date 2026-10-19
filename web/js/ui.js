@@ -1,7 +1,8 @@
 // Shared UI pieces: icons, top bar, avatars, small controls, toasts, QR codes.
 import { html, useEffect, useState, useRef, useMemo, initials, SINGER_COLORS } from './lib.js';
 import { bus, useRoom } from './api.js';
-import qrcode from '/vendor/qrcode.mjs';
+import qrcode from '../vendor/qrcode.mjs';
+import { appUrl } from './urls.mjs';
 
 const P = {
   palette: 'M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 1-3.7 1.5 1.5 0 0 1 1-2.8h2a4 4 0 0 0 4-4C21 6.5 17 3 12 3zM7.5 10h.01M10 6.5h.01M15 6.5h.01M18 10h.01',
@@ -103,6 +104,21 @@ export function TopBar({ active, studioSong }) {
   </header>`;
 }
 
+export function ConnectionNotice() {
+  const { connected } = useRoom();
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    if (connected) { setWaiting(false); return; }
+    const timer = setTimeout(() => setWaiting(true), 6000);
+    return () => clearTimeout(timer);
+  }, [connected]);
+  if (connected || !waiting) return null;
+  return html`<div class="page-inner" role="status" style="padding:16px 24px 0">
+    <div class="card"><strong>Waiting for the room</strong>
+      <p class="hint">The room may be offline, or your connection may have dropped. Songs and shared controls will return automatically when the host reconnects.</p>
+    </div></div>`;
+}
+
 function hash(s) {
   let h = 0;
   for (const c of s || '') h = (h * 31 + c.charCodeAt(0)) | 0;
@@ -163,7 +179,7 @@ export function Thumb({ src, sm }) {
   const [err, setErr] = useState(false);
   useEffect(() => setErr(false), [src]);
   if (!src || err) return html`<span class=${'thumb' + (sm ? ' sm' : '')}><${Icon} name="music" size=${sm ? 20 : 26} /></span>`;
-  return html`<img class=${'thumb' + (sm ? ' sm' : '')} src=${src} alt="" loading="lazy" onError=${() => setErr(true)} />`;
+  return html`<img class=${'thumb' + (sm ? ' sm' : '')} src=${appUrl(src)} alt="" loading="lazy" onError=${() => setErr(true)} />`;
 }
 
 export function useClickOutside(ref, onOut, active) {

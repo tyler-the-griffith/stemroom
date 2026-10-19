@@ -1,5 +1,6 @@
 // REST helpers plus the live room connection (WebSocket) shared by every view.
 import { useEffect, useState } from './lib.js';
+import { appUrl, refreshConnection } from './urls.mjs';
 
 async function request(method, path, body, isForm) {
   const opts = { method, headers: {} };
@@ -7,7 +8,7 @@ async function request(method, path, body, isForm) {
     if (isForm) opts.body = body;
     else { opts.body = JSON.stringify(body); opts.headers['content-type'] = 'application/json'; }
   }
-  const r = await fetch(path, opts);
+  const r = await fetch(appUrl(path), opts);
   let data = null;
   try { data = await r.json(); } catch { /* empty body */ }
   if (!r.ok) throw new Error(data?.detail || `${r.status} ${r.statusText}`);
@@ -33,9 +34,12 @@ let socket = null;
 const subs = new Set();
 const notify = () => subs.forEach((f) => f());
 
-function connect() {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  socket = new WebSocket(`${proto}://${location.host}/ws?clientId=${clientId}`);
+async function connect() {
+  await refreshConnection();
+  const url = new URL(appUrl('/ws'));
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.searchParams.set('clientId', clientId);
+  socket = new WebSocket(url);
   socket.onopen = () => { connected = true; notify(); };
   socket.onclose = () => {
     connected = false;

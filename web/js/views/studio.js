@@ -1,6 +1,7 @@
 // Full control over one song: per-stem mix and effects, key/speed, loops, lyrics and duet parts.
 import { html, useState, useEffect, useRef, useMemo, useCallback, fmtTime, fmtKey, keyName, transposeChord, clamp, debounce, singersLabel } from '../lib.js';
 import { api, useRoom, useBus, toast, bus, clientId } from '../api.js';
+import { appUrl } from '../urls.mjs';
 import { Engine, computeGains, playableStems, stemMix, leadVocalLevel, TONE_NAMES, VOCAL } from '../engine.js';
 import { resolveParts, partColor, partLabel, activeLine, sectionAt } from '../lyrics.js';
 import { Icon, TopBar, Stepper, Switch, useClickOutside, Thumb } from '../ui.js';
@@ -127,7 +128,7 @@ function Inspector({ song, stem, m, onChange, busy }) {
       ${stem.id === 'drums' && !hasKit && html`<button class="btn" type="button" disabled=${busy} onClick=${() => refine('drumsep')}><${Icon} name="split" size=${18} />Split into kick, snare, toms and cymbals</button>`}
       ${VOCAL.has(stem.id) && stem.id !== 'lead_dry' && !hasDry && html`<button class="btn" type="button" disabled=${busy} onClick=${() => refine('dereverb')}><${Icon} name="wand" size=${18} />Make a dry copy (remove room reverb)</button>`}
       ${stem.id === 'backing' && html`<button class="btn" style="white-space:normal" type="button" disabled=${busy} onClick=${() => refine('harmonies')}><${Icon} name="split" size=${18} />Separate overlapping harmonies</button>`}
-      <a class="btn" href=${`/media/${song.id}/${stem.id}.flac?v=${song.assetVersion || "original"}`} download><${Icon} name="download" size=${18} />Download this stem (FLAC)</a>
+      <a class="btn" href=${appUrl(`/media/${song.id}/${stem.id}.flac?v=${song.assetVersion || "original"}`)} download><${Icon} name="download" size=${18} />Download this stem (FLAC)</a>
     </div>
   </aside>`;
 }
@@ -448,7 +449,7 @@ export function StudioView({ songId, entryId, initialMixId }) {
     try {
       const r = await api.post(`/api/songs/${songId}/export`, body);
       const a = document.createElement('a');
-      a.href = r.url; a.download = '';
+      a.href = appUrl(r.url); a.download = '';
       document.body.appendChild(a); a.click(); a.remove();
     } catch (e) { toast(e.message, true); }
   };

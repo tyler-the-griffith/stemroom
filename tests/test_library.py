@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 TEMP=tempfile.TemporaryDirectory(prefix='stemroom-tests-')
 os.environ['STEMROOM_DATA']=TEMP.name
+os.environ['STEMROOM_FRONTEND_ORIGINS']='https://tylergriffith.us'
 root=Path(TEMP.name)
 sid='yt-abcdefghijk'
 songdir=root/'songs'/sid
@@ -25,6 +26,7 @@ cover='https://example.test/preserved-cover.jpg'
 from fastapi.testclient import TestClient
 from server import config
 config.DATA=root;config.SONGS=root/"songs";config.EXPORTS=root/"exports";config.MODELS=root/"models"
+config.FRONTEND_ORIGINS=['https://tylergriffith.us']
 from server import app as server, catalog, store, library
 
 class LibraryTests(unittest.TestCase):
@@ -51,6 +53,42 @@ class LibraryTests(unittest.TestCase):
                 self.assertEqual(info['lanUrl'], f'http://192.168.1.5:{config.PORT}')
             finally:
                 public.close()
+
+    def test_subpath_serves_assets_api_audio_and_websocket(self):
+        redirect = self.client.get('/stemroom?from=site', follow_redirects=False)
+        self.assertEqual(redirect.status_code, 307)
+        self.assertEqual(redirect.headers['location'], '/stemroom/?from=site')
+        for path in ['/', '/js/main.js', '/js/urls.mjs', '/vendor/SignalsmithStretch.mjs', '/css/app.css', '/api/state']:
+            self.assertEqual(self.client.get('/stemroom'+path).status_code, 200, path)
+        audio = self.client.get(f'/stemroom/media/{sid}/lead.opus', headers={'Range':'bytes=0-3'})
+        self.assertEqual(audio.status_code, 206)
+        self.assertEqual(len(audio.content), 4)
+        with self.client.websocket_connect('/stemroom/ws?clientId=subpath-check') as ws:
+            self.assertEqual(ws.receive_json()['type'], 'state')
+        public = TestClient(server.app, base_url='https://site.test')
+        try:
+            with patch.object(config, 'PUBLIC_URL', ''):
+                self.assertEqual(public.get('/stemroom/api/info').json()['joinUrl'], 'https://site.test/stemroom/#/join')
+            with patch.object(config, 'PUBLIC_URL', 'https://tylergriffith.us/stemroom'):
+                self.assertEqual(public.get('/stemroom/api/info').json()['joinUrl'], 'https://tylergriffith.us/stemroom/#/join')
+        finally:
+            public.close()
+
+    def test_hosted_frontend_cors_for_controls_and_audio(self):
+        origin = {'Origin': 'https://tylergriffith.us'}
+        for method in ('POST', 'PATCH', 'PUT', 'DELETE'):
+            response = self.client.options('/api/settings', headers={**origin,
+                'Access-Control-Request-Method': method, 'Access-Control-Request-Headers': 'content-type'})
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.headers['access-control-allow-origin'], origin['Origin'])
+        audio = self.client.get(f'/media/{sid}/lead.opus', headers={**origin, 'Range': 'bytes=0-3'})
+        self.assertEqual(audio.status_code, 206)
+        self.assertEqual(audio.headers['access-control-allow-origin'], origin['Origin'])
+        self.assertIn('Content-Range', audio.headers['access-control-expose-headers'])
+        unknown = self.client.options('/api/settings', headers={'Origin': 'https://other.test',
+            'Access-Control-Request-Method': 'PUT'})
+        self.assertEqual(unknown.status_code, 400)
+        self.assertNotIn('access-control-allow-origin', unknown.headers)
 
     def test_01_migration_keeps_artwork_and_queue(self):
         song=self.client.get(f'/api/songs/{sid}').json()

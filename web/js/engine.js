@@ -1,7 +1,8 @@
 // Multi-stem player. All stems feed ONE Signalsmith Stretch node as interleaved stereo pairs,
 // so key and speed changes apply to every stem with sample-accurate sync, then a splitter
 // fans them back out into per-stem gain / pan / tone / effect sends.
-import SignalsmithStretch from '/vendor/SignalsmithStretch.mjs';
+import SignalsmithStretch from '../vendor/SignalsmithStretch.mjs';
+import { appUrl } from './urls.mjs';
 
 const TONES = {
   natural: { hp: 10, low: 0, high: 0, lp: 20000 },
@@ -101,7 +102,7 @@ export class Engine extends EventTarget {
     let done = 0;
     // Fetch in parallel, decode as they arrive.
     await Promise.all(stems.map(async (s, i) => {
-      const r = await fetch(`/media/${songId}/${s.id}.opus?v=${encodeURIComponent(version)}`);
+      const r = await fetch(appUrl(`/media/${songId}/${s.id}.opus?v=${encodeURIComponent(version)}`));
       if (!r.ok) throw new Error(`Couldn't load the ${s.id} stem`);
       const buf = await ctx.decodeAudioData(await r.arrayBuffer());
       decoded[i] = buf;

@@ -16,6 +16,7 @@ from pathlib import Path
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.concurrency import run_in_threadpool
 
 from . import config, store, catalog
@@ -23,6 +24,7 @@ from . import library as lib
 from .jobs import Jobs
 from .pipeline import lyrics as lyr
 from .pipeline import ytdl
+from .subpath import SubpathMiddleware
 
 room = store.Room()
 clients: set[WebSocket] = set()
@@ -83,6 +85,11 @@ async def lifespan(_app):
 
 
 app = FastAPI(title="Stemroom", lifespan=lifespan)
+app.add_middleware(SubpathMiddleware)
+app.add_middleware(CORSMiddleware, allow_origins=config.FRONTEND_ORIGINS,
+                   allow_methods=['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'],
+                   allow_headers=['Content-Type', 'Range'],
+                   expose_headers=['Content-Range', 'Accept-Ranges', 'Content-Disposition'])
 
 
 @app.middleware("http")
@@ -138,7 +145,8 @@ async def info(request: Request):
     lan_url = f"http://{lan_ip()}:{config.PORT}"
     # HTTPS visitors need the public tunnel's address, not the host's private IP.
     # Proxy headers are trusted only from the local tunnel by Uvicorn's default.
-    public_url = str(request.base_url).rstrip("/") if request.url.scheme == "https" else lan_url
+    path = request.scope.get('root_path', '').rstrip('/')
+    public_url = (config.PUBLIC_URL or str(request.base_url).rstrip('/')) if request.url.scheme == "https" else lan_url + path
     return {"lanUrl": lan_url, "joinUrl": f"{public_url}/#/join"}
 
 

@@ -1,123 +1,94 @@
 # Hosting Stemroom
 
-## Current public websites
+## Website and backend
 
-- Personal website entry: https://tylergriffith.us/stemroom/
-- GitHub Pages mirror: https://tyler-the-griffith.github.io/stemroom/
-- Repository: https://github.com/tyler-the-griffith/stemroom
+- Website: https://tylergriffith.us/stemroom/
+- GitHub Pages entry: https://tyler-the-griffith.github.io/stemroom/
+- Source: https://github.com/tyler-the-griffith/stemroom
 
-Both website links redirect directly to the Queue. The full application runs on Tyler's computer
-behind a public Cloudflare Quick Tunnel. `docs/room.json` points to that
-room. Anyone can open it without signing in and has full control of the shared
-library and player. Public access was explicitly selected by the owner.
+WestHost serves the complete browser interface at `/stemroom/`: the Queue,
+Stage, Studio, themes, mixer JavaScript and audio worklet. Visitors stay at that
+address, with a top-bar link back to the portfolio. GitHub Pages redirects here.
 
-The portfolio's top navigation links to `/stemroom/`, which opens the Queue.
-The application has a link back to `https://tylergriffith.us/` in its top bar.
-The app's numbered Queue / Stage / Studio navigation stays visible on mobile.
+The Python backend runs on Tyler's computer through a public Cloudflare Tunnel.
+It owns the shared queue, library, artwork, audio, lyrics, collections and mixes,
+and performs imports, separation and exports. Everyone has full control, as
+requested by the owner. There are no separate visitor accounts or private
+libraries. Music, models, credentials and the database are excluded from Git.
 
-## Current computer-hosted setup
+The static website continues to load while the computer is off. Loading songs,
+processing and shared controls need the computer and tunnel to be online. The
+page reconnects automatically after a backend outage.
 
-The computer, Stemroom server, and tunnel process must stay running. No cloud
-server has been purchased. Music and the database remain on the computer;
-Cloudflare relays HTTPS traffic to visitors. This is one shared room: everyone
-can control playback, import, replace or delete songs, edit mixes, and download
-stems. There are no separate visitor accounts or private libraries.
+## Deploy the browser interface
 
-Quick Tunnels are temporary: their hostname changes when restarted, there is no
-uptime guarantee, and they support up to 200 concurrent in-flight requests. They
-are suitable for this interim setup, not a promise of permanent hosting. The
-website links must be updated after a tunnel restart. A named Cloudflare Tunnel
-and configured domain can provide a stable app hostname later.
-
-To restart after a reboot, first run `./run.sh`. In another terminal:
-
-```bash
-./scripts/start-online.sh --public
+```
+python scripts/build-frontend.py --output /path/to/portfolio/stemroom \
+  --backend https://your-backend-hostname --runtime
 ```
 
-The verified Cloudflare binary can live in ignored `data/tools/cloudflared`, be
-on PATH, or be specified with `CLOUDFLARED`. The helper requires an explicit
-`--public` choice or individual allowed email addresses. To return to private
-access, stop the public tunnel and use
-`./scripts/start-online.sh owner@example.com` with the desired addresses.
+Deploy that directory using the portfolio's normal Git/WestHost workflow. Do
+not copy `docs/` over it: `docs/` is the Pages redirect, not the application.
+`connection.js` is public configuration containing only the backend URL.
 
-After the public tunnel prints its HTTPS URL, verify that an anonymous visit
-opens the app, then update the entry pages:
+Configure the backend with:
 
-```bash
-python scripts/set-room.py --public https://your-new-hostname.trycloudflare.com
-python scripts/check-site.py
-git add docs/
-git commit -m "Update public room address"
-git push
+```
+STEMROOM_PUBLIC_URL=https://tylergriffith.us/stemroom \
+STEMROOM_FRONTEND_ORIGINS=https://tylergriffith.us,https://www.tylergriffith.us \
+./run.sh
 ```
 
-The helper rebuilds `docs/index.html` with the new Queue address.
-Also copy the updated `docs/` into the portfolio repository's `stemroom/`
-directory and deploy that repository. Updating only Pages leaves the portfolio
-entry pointing at the previous tunnel. The tunnel is currently started as a
-detached process; it is not configured to restart automatically after a reboot.
+These settings keep QR codes on the website and allow its cross-origin API and
+audio requests. They are not an authentication mechanism. Local same-server
+installs work without these settings.
 
-Cloudflare documentation: https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/
+## Cloudflare
 
-## WestHost
+A Quick Tunnel currently carries backend traffic. Its URL changes when the
+process is restarted. The tunnel service checks that the new backend is ready,
+then atomically publishes its public URL to `stemroom/backend.json` on WestHost
+over the existing SSH connection. The browser checks this file on startup and
+while reconnecting. Visitors keep the same website address after restarts.
 
-The existing portfolio is served on WestHost's StackCP shared hosting platform.
-It can host the static entry page. Its Python support does not provide the
-persistent ASGI server, WebSockets, and long-running inference worker required
-by this application. Do not run background daemons on that shared platform.
+Build with `--runtime` to enable this discovery. `backend.json` is deliberately
+untracked, contains no credentials, and is not overwritten by normal Git
+deployments. If SSH publication fails, the service retries every ten seconds.
+Quick Tunnels still have no uptime guarantee; they are not a production SLA.
 
-WestHost offers VPS plans through Heart Internet with root access. A VPS can run
-the backend using CPU inference. The right RAM and CPU allocation must be tested
-with the selected models; the lowest-cost website plan is not a sizing guide for
-audio separation. GPU processing requires a GPU-capable host, or the existing
-local machine. No hosting plan has been purchased by this project.
+[Permanent tunnel setup](deploy/cloudflare/README.md) describes moving DNS after
+reviewing WestHost's complete zone, creating a named tunnel hostname, and
+switching `connection.js`. This is optional: automatic Quick Tunnel discovery
+works without changing WestHost DNS or logging into its dashboard. No
+Cloudflare Worker or paid server is needed for this split. The permanent tunnel remains dependent on the computer being on.
 
-References:
-- https://www.westhost.com/vps/
-- https://www.westhost.com/web-hosting/
-- https://docs.20i.com/web-hosting/daemons-on-shared-hosting
+The helper `./scripts/start-online.sh --public` starts a temporary public
+Cloudflare tunnel. The verified binary can live in ignored
+`data/tools/cloudflared`, be on PATH, or be set with `CLOUDFLARED`.
 
-## Optional future VPS deployment
+## Server operation
 
-The repository includes example configuration in `deploy/`. These files are
-templates, not proof that a cloud deployment is running.
+On Tyler's installed computer, `stemroom.service` is a systemd user service,
+started at login and restarted on failure. Use `systemctl --user status
+stemroom` and `journalctl --user -u stemroom` for diagnostics.
+`stemroom-tunnel.service` likewise starts at login and restarts the tunnel after
+failures. `journalctl --user -u stemroom-tunnel` includes publication status.
+Both services run as the existing user; they need the computer awake and a
+working network. A logout/reboot requires the user session to start again.
+The tunnel publisher uses `scripts/online-service.py` with
+`STEMROOM_PUBLISH_SSH` and `STEMROOM_PUBLISH_DIR` set to the existing website.
 
-1. Provision a Linux VPS and supply SSH access. Choose a hostname such as
-   `stemroom.tylergriffith.us`; point only that subdomain to the VPS. Keep the
-   existing portfolio's DNS and hosting unchanged.
-2. Install Python, FFmpeg with rubberband support, Deno, Nginx, and certificate
-   tooling. Follow the README to install the app at `/srv/stemroom` with a venv.
-3. Create an unprivileged `stemroom` service user and a private writable data
-   directory. The systemd example binds to `127.0.0.1:8765`, behind the proxy.
-4. Enable authentication at the HTTPS reverse proxy before exposing the app.
-   The Nginx example uses a password file created with `htpasswd`; create it on
-   the server and never commit it. Every admitted visitor can control the shared
-   room, import songs, and download stems. This is not a multi-tenant service.
-5. Obtain a valid TLS certificate for the subdomain and configure Nginx. It must
-   forward WebSocket upgrades, the host, and the original HTTPS protocol.
-6. Transfer the existing `data/` separately if the current library is wanted
-   online. Stop the app during transfer, or take a consistent database backup.
-   Verify file hashes and available disk space; never upload the library to Git.
-7. Verify authenticated page loading, API calls, WebSocket state, audio playback,
-   import processing, downloads, and the QR join link from a second device.
-8. Set `docs/room.json` to the verified HTTPS root URL and an accurate availability
-   note. Commit and push to update Pages, then copy `docs/` into the portfolio's
-   `stemroom/` directory and deploy the portfolio through its usual process.
+Keep `data/` backed up separately, including SQLite and versioned audio. Stop
+the server or use SQLite's backup API to create a consistent database backup.
+Do not run this persistent Python/model pipeline on WestHost shared hosting.
+The generic VPS templates under `deploy/` remain optional future examples.
 
-The backend serves its frontend on the same HTTPS origin. This keeps streaming,
-downloads, worklets, authentication, and WebSockets together. GitHub Pages and
-the portfolio provide stable entry links; the actual app runs at the backend's
-hostname. This avoids exposing tokens in static JavaScript or introducing
-cross-origin authentication workarounds.
+## GitHub Pages
 
-## Updating the website
-
-```bash
-python scripts/build-site.py
+```
+python scripts/set-room.py --public https://tylergriffith.us/stemroom/
 python scripts/check-site.py
 ```
 
-The Pages workflow publishes only `docs/`. Its assets use relative paths so the
-same directory also works at the portfolio's `/stemroom/` path. No API keys,
-passwords, model files, or music belong in this directory.
+The Pages workflow publishes `docs/`. It sends visitors to the website Queue.
+Do not put credentials, songs, lyrics, models or private library data in it.
