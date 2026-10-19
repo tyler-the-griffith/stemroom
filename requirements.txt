@@ -1,0 +1,13 @@
+# Install torch first with CUDA wheels:
+#   pip install torch torchaudio --index-url https://download.pytorch.org/whl/cu128
+audio-separator==0.47.1
+onnxruntime
+audioread
+fastapi
+uvicorn[standard]
+python-multipart
+yt-dlp
+faster-whisper
+httpx
+librosa
+soundfile

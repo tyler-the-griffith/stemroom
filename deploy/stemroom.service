@@ -1,0 +1,23 @@
+[Unit]
+Description=Stemroom karaoke server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=stemroom
+Group=stemroom
+WorkingDirectory=/srv/stemroom
+Environment=STEMROOM_DATA=/var/lib/stemroom
+Environment=STEMROOM_DEVICE=cpu
+Environment=STEMROOM_PORT=8765
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/srv/stemroom/.venv/bin/python -m uvicorn server.app:app --host 127.0.0.1 --port 8765 --proxy-headers --forwarded-allow-ips=127.0.0.1
+Restart=on-failure
+RestartSec=5
+StateDirectory=stemroom
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

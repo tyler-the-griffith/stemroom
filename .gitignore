@@ -1,0 +1,24 @@
+# Local runtime and private library
+.venv/
+venv/
+data/
+models/
+exports/
+backups/
+.env
+.env.*
+!.env.example
+*.sqlite3
+*.sqlite3-*
+*.db
+*.pem
+*.key
+cookies*.txt
+
+# Generated files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+node_modules/
+.DS_Store
+*.log

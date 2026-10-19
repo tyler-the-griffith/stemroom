@@ -1,0 +1,9 @@
+# No separation models or GPU libraries are needed for the isolated tests.
+fastapi
+uvicorn
+httpx
+python-multipart
+yt-dlp
+numpy
+soundfile
+librosa
